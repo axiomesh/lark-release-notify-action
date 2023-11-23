@@ -1,7 +1,7 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 626:
+/***/ 5209:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -42,31 +42,37 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.notify = exports.generateMessage = void 0;
 const httpm = __importStar(__nccwpck_require__(6255));
 const github_1 = __nccwpck_require__(5438);
-const safe_1 = __nccwpck_require__(7526);
 const core = __importStar(__nccwpck_require__(2186));
-function generateMessage(templateID, notificationTitle, contentTagName, users, status, secret) {
-    var _a, _b;
-    let openID = '';
-    const userArr = users.split(',');
-    for (const user of userArr) {
-        const infos = user.split('|');
-        if (infos.length !== 2) {
-            throw new Error('the secret users is error');
-        }
-        if (infos[0] === github_1.context.actor) {
-            openID = infos[1];
+function generateAt(contentWorkflowsStatus, phoneNums) {
+    let contentAt = '';
+    const paramAt = {
+        atMobiles: [],
+        atUserIds: [],
+        atAll: false
+    };
+    switch (contentWorkflowsStatus.toLowerCase()) {
+        case 'success':
+            paramAt.atAll = true;
+            contentAt = '通知到：'.toString();
             break;
-        }
+        default:
+            contentAt = '创建人：'.toString();
+            for (const number of phoneNums) {
+                contentAt = contentAt + `@${number} `.toString();
+                paramAt.atMobiles.push(number);
+            }
     }
-    // release's actor is not in users, skip notify
-    if (openID === '') {
-        throw new Error('no this user in secret users, skip notify');
-    }
-    const contentWorkflowsStatus = status.toUpperCase();
+    return { contentAt, paramAt };
+}
+function generateMessage(notificationTitle, users, contentWorkflowsStatus) {
+    var _a, _b;
+    users = users.trim();
+    contentWorkflowsStatus = contentWorkflowsStatus.toUpperCase();
+    const contentTagName = github_1.context.payload.ref.replace('refs/tags/', '');
     let contentWorkflowsStatusColor;
     let buttonUrl;
-    switch (status) {
-        case 'success':
+    switch (contentWorkflowsStatus) {
+        case 'SUCCESS':
             contentWorkflowsStatusColor = 'green';
             // go to release page
             buttonUrl = `${(_a = github_1.context.payload.repository) === null || _a === void 0 ? void 0 : _a.html_url}/releases/tag/${contentTagName}`;
@@ -75,29 +81,37 @@ function generateMessage(templateID, notificationTitle, contentTagName, users, s
             contentWorkflowsStatusColor = 'red';
             buttonUrl = `${(_b = github_1.context.payload.repository) === null || _b === void 0 ? void 0 : _b.html_url}/actions/runs/${github_1.context.runId}`;
     }
-    const msgCard = {
-        type: 'template',
-        data: {
-            template_id: templateID,
-            template_variable: {
-                notification_title: notificationTitle,
-                content_tag_name: contentTagName,
-                content_user_id: openID,
-                content_workflows_status: contentWorkflowsStatus,
-                content_workflows_status_color: contentWorkflowsStatusColor,
-                button_url: buttonUrl
+    let openIDs = [];
+    // success, notify reviewers
+    if (contentWorkflowsStatus === 'FAILURE') {
+        // fail, notify creator
+        const userArr = users.split(',');
+        for (const user of userArr) {
+            const userMapping = user.split(':').map((word) => word.trim()).filter(elm => elm);
+            if (userMapping.length !== 2) {
+                throw new Error('the secret users is error, perhaps not split by ":"');
+            }
+            if (userMapping[0] === github_1.context.actor) {
+                openIDs.push(userMapping[1]);
+                break;
             }
         }
+        // release's actor is not in users, skip notify
+        if (openIDs.length === 0) {
+            core.info('no this user in secret users, skip notify');
+            return;
+        }
+    }
+    const contentAt = generateAt(contentWorkflowsStatus, openIDs);
+    const rlContent = `Release Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString();
+    const msgCard = {
+        title: notificationTitle,
+        text: rlContent
     };
-    // generate sign
-    const now = Math.floor(Date.now() / 1000).toString();
-    core.info(`timestamp: ${now}`);
-    const signature = (0, safe_1.generateSignature)(now, secret);
     return {
-        msg_type: 'interactive',
-        card: JSON.stringify(msgCard),
-        timestamp: now,
-        sign: signature
+        msgtype: 'markdown',
+        markdown: msgCard,
+        at: contentAt.paramAt
     };
 }
 exports.generateMessage = generateMessage;
@@ -105,14 +119,17 @@ function notify(webhook, msg) {
     return __awaiter(this, void 0, void 0, function* () {
         const jsonStr = JSON.stringify(msg);
         const http = new httpm.HttpClient();
-        const response = yield http.post(webhook, jsonStr, httpm.Headers);
+        const headers = {
+            'Content-Type': 'application/json' // Set the correct Content-Type
+        };
+        const response = yield http.post(webhook, jsonStr, headers);
         if (response.message.statusCode !== httpm.HttpCodes.OK) {
             throw new Error(`send request to webhook error, status code is ${response.message.statusCode}`);
         }
         const body = yield response.readBody();
-        const larkResp = JSON.parse(body);
-        if (larkResp.code !== 0) {
-            throw new Error(`send request to webhook error, err msg is ${larkResp.msg}`);
+        const dingtalkResp = JSON.parse(body);
+        if (dingtalkResp.errcode !== 0) {
+            throw new Error(`send request to webhook error, err msg is ${dingtalkResp.errmsg}`);
         }
     });
 }
@@ -161,29 +178,30 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
-const lark_1 = __nccwpck_require__(626);
+const dingtalk_1 = __nccwpck_require__(5209);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const ref = github_1.context.ref;
             if (!ref.startsWith('refs/tags/')) {
-                throw new Error('lark-release-notify require a tag');
+                throw new Error('dingtalk-release-notify require a tag');
             }
             const tagName = ref.replace('refs/tags/', '');
             // release on all os is success
             let status = core.getInput('status');
+            let notificationTitle = core.getInput("notification_title");
             if (status === '') {
                 status = 'success';
             }
-            core.info(`the release actions status is ${status}`);
-            const templateID = core.getInput('template_id');
-            const notificationTitle = core.getInput('notification_title');
+            core.info(`the release actions status of ${tagName} is ${status}`);
             const users = core.getInput('users');
-            const webhook = core.getInput('webhook');
-            const secret = core.getInput('secret');
-            const message = (0, lark_1.generateMessage)(templateID, notificationTitle, tagName, users, status, secret);
-            core.info('send notification to lark');
-            yield (0, lark_1.notify)(webhook, message);
+            const message = (0, dingtalk_1.generateMessage)(notificationTitle, users, status);
+            // need notify
+            if (message != null) {
+                core.info('send notification to dingtalk');
+                const webhook = core.getInput('webhook');
+                yield (0, dingtalk_1.notify)(webhook, message);
+            }
             core.info('finalize');
         }
         catch (error) {
@@ -193,47 +211,6 @@ function run() {
     });
 }
 run();
-
-
-/***/ }),
-
-/***/ 7526:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateSignature = void 0;
-const crypto = __importStar(__nccwpck_require__(6113));
-function generateSignature(timestamp, secret) {
-    const stringToSign = `${timestamp}\n${secret}`;
-    const hmac = crypto.createHmac('sha256', stringToSign);
-    return hmac.digest('base64');
-}
-exports.generateSignature = generateSignature;
 
 
 /***/ }),
