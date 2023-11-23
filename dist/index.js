@@ -48,12 +48,12 @@ function generateAt(contentWorkflowsStatus, phoneNums) {
     const paramAt = {
         atMobiles: [],
         atUserIds: [],
-        atAll: false
+        isAtAll: false
     };
     switch (contentWorkflowsStatus.toLowerCase()) {
         case 'success':
-            paramAt.atAll = true;
-            contentAt = '通知到：'.toString();
+            paramAt.isAtAll = true;
+            contentAt = '通知到：@所有人 '.toString();
             break;
         default:
             contentAt = '创建人：'.toString();
@@ -68,6 +68,7 @@ function generateMessage(notificationTitle, users, contentWorkflowsStatus) {
     var _a, _b;
     users = users.trim();
     contentWorkflowsStatus = contentWorkflowsStatus.toUpperCase();
+    console.log("ref: " + github_1.context.payload.ref);
     const contentTagName = github_1.context.payload.ref.replace('refs/tags/', '');
     let contentWorkflowsStatusColor;
     let buttonUrl;
@@ -87,7 +88,10 @@ function generateMessage(notificationTitle, users, contentWorkflowsStatus) {
         // fail, notify creator
         const userArr = users.split(',');
         for (const user of userArr) {
-            const userMapping = user.split(':').map((word) => word.trim()).filter(elm => elm);
+            const userMapping = user
+                .split(':')
+                .map(word => word.trim())
+                .filter(elm => elm);
             if (userMapping.length !== 2) {
                 throw new Error('the secret users is error, perhaps not split by ":"');
             }
@@ -103,7 +107,7 @@ function generateMessage(notificationTitle, users, contentWorkflowsStatus) {
         }
     }
     const contentAt = generateAt(contentWorkflowsStatus, openIDs);
-    const rlContent = `Release Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString();
+    const rlContent = `Release Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString();
     const msgCard = {
         title: notificationTitle,
         text: rlContent
@@ -189,7 +193,7 @@ function run() {
             const tagName = ref.replace('refs/tags/', '');
             // release on all os is success
             let status = core.getInput('status');
-            let notificationTitle = core.getInput("notification_title");
+            const notificationTitle = core.getInput('notification_title');
             if (status === '') {
                 status = 'success';
             }

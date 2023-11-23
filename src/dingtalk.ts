@@ -37,7 +37,7 @@ function generateAt(
     switch (contentWorkflowsStatus.toLowerCase()) {
         case 'success':
             paramAt.isAtAll = true
-            contentAt = '通知到：'.toString() + `@所有人 `.toString()
+            contentAt = '通知到：@所有人 '.toString()
             break
         default:
             contentAt = '创建人：'.toString()
