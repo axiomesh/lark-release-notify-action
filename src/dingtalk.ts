@@ -16,7 +16,7 @@ interface markdown {
 interface at {
     atMobiles: string[]
     atUserIds: string[]
-    atAll: boolean
+    isAtAll: boolean
 }
 
 interface dingtalkResponse {
@@ -32,12 +32,12 @@ function generateAt(
     const paramAt = {
         atMobiles: [] as string[],
         atUserIds: [] as string[],
-        atAll: false
+        isAtAll: false
     }
     switch (contentWorkflowsStatus.toLowerCase()) {
         case 'success':
-            paramAt.atAll = true
-            contentAt = '通知到：'.toString()
+            paramAt.isAtAll = true
+            contentAt = '通知到：'.toString() + `@所有人 `.toString()
             break
         default:
             contentAt = '创建人：'.toString()
@@ -100,7 +100,7 @@ export function generateMessage(
     }
     const contentAt = generateAt(contentWorkflowsStatus, openIDs)
     const rlContent =
-        `Release Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString()
+        `Release Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString()
 
     const msgCard: markdown = {
         title: notificationTitle,
