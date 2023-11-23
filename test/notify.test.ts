@@ -1,4 +1,4 @@
-require('./.env.js');
+require('./.env_example.js');
 jest.mock('@actions/github', () => ({
     context: {
         actor: process.env.NOTIFY_ACTION_ACTOR as string,
@@ -31,7 +31,7 @@ describe('test notification to dingtalk', () => {
     })
 
     test('test generate fail message', async () => {
-        const msg = generateMessage(title, users, 'fail')
+        const msg = generateMessage(title, users, 'failure')
         console.log(msg)
     })
 
@@ -43,7 +43,7 @@ describe('test notification to dingtalk', () => {
     })
 
     test('notify dingtalk fail msg', async () => {
-        const failMsg = generateMessage(title, users, 'fail')
+        const failMsg = generateMessage(title, users, 'failure')
         if (failMsg) {
             notify(webhook, failMsg)
         }
