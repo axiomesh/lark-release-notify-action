@@ -70,6 +70,7 @@ function generateMessage(notificationTitle, users, contentWorkflowsStatus) {
     contentWorkflowsStatus = contentWorkflowsStatus.toUpperCase();
     console.log("ref: " + github_1.context.payload.ref);
     const contentTagName = github_1.context.payload.ref.replace('refs/tags/', '');
+    let repo = github_1.context.repo.repo;
     let contentWorkflowsStatusColor;
     let buttonUrl;
     switch (contentWorkflowsStatus) {
@@ -107,7 +108,7 @@ function generateMessage(notificationTitle, users, contentWorkflowsStatus) {
         }
     }
     const contentAt = generateAt(contentWorkflowsStatus, openIDs);
-    const rlContent = `Release Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString();
+    const rlContent = `Repository：${repo}\n\nRelease Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString();
     const msgCard = {
         title: notificationTitle,
         text: rlContent

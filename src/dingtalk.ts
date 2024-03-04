@@ -59,6 +59,7 @@ export function generateMessage(
     contentWorkflowsStatus = contentWorkflowsStatus.toUpperCase()
     console.log("ref: " + context.payload.ref)
     const contentTagName = context.payload.ref.replace('refs/tags/', '')
+    let repo = context.repo.repo;
     let contentWorkflowsStatusColor
     let buttonUrl
     switch (contentWorkflowsStatus) {
@@ -100,7 +101,7 @@ export function generateMessage(
     }
     const contentAt = generateAt(contentWorkflowsStatus, openIDs)
     const rlContent =
-        `Release Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString()
+        `Repository：${repo}\n\nRelease Binary：[${contentTagName}](${buttonUrl})\n\n${contentAt.contentAt}\n\n工作流状态：<font color='${contentWorkflowsStatusColor}'>${contentWorkflowsStatus}</font>\n![screenshot](https://i0.wp.com/saixiii.com/wp-content/uploads/2017/05/github.png?fit=573%2C248&ssl=1)\n`.toString()
 
     const msgCard: markdown = {
         title: notificationTitle,
